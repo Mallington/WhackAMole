@@ -10,9 +10,9 @@ int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}}; // ** Changed to 13 to fi
 
 int playerButton[amountOfPlayers] = {2, 3};
 
-boolean gameOn[amountOfPlayers] = {false, false};
-boolean playerPressed[amountOfPlayers] = {false, false};
-int score[amountOfPlayers] = {0,0};
+boolean gameOn[amountOfPlayers];
+boolean playerPressed[amountOfPlayers];
+int score[amountOfPlayers];
 
 
 //int playerOneButton = 2;
@@ -22,7 +22,7 @@ int servoPin = 10;
 int servoWin = 10;
 int servoLoose = 180;
 int randNumber;
-boolean fouled[amountOfPlayers] = {false,false};
+boolean fouled[amountOfPlayers];
 
 //setup interrupt, button input and LED outputs
 void setup() {
@@ -31,13 +31,13 @@ void setup() {
   for (int r =0; r < amountOfPlayers; r++) {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered, FALLING);
   }
-  /* MESSAGE:  Soz, I know you were trying to be tidy, but I don't think it work like that
   for (int a = 0; a < amountOfPlayers; a ++) {
     // Loop to set up the arrays in a better format, if more players are added
     gameOn[a] = false;
     playerPressed[a] = false;
+    fouled[a] = false;
     score[a] = 0;
-  } */
+  }
 
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
@@ -97,7 +97,7 @@ void flashPlayer(){
 void triggered() {
   // Checking to see if the player is cheating
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(playerButton[p] == HIGH){
+    if(playerButton[p] == LOW){
     if(gameOn[p]) playerPressed[p] = true;
     else fouled[p] = true;
     }
