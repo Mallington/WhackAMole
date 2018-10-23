@@ -22,7 +22,7 @@ int servoPin = 10;
 int servoWin = 10;
 int servoLoose = 180;
 int randNumber;
-boolean fouled[amountOfPlayers] = {false,false};
+boolean fouled[amountOfPlayers];
 
 //setup interrupt, button input and LED outputs
 void setup() {
@@ -35,6 +35,7 @@ void setup() {
     // Loop to set up the arrays in a better format, if more players are added
     gameOn[a] = false;
     playerPressed[a] = false;
+    fouled[a] = false;
     score[a] = 0;
   }
 
@@ -96,7 +97,7 @@ void flashPlayer(){
 void triggered() {
   // Checking to see if the player is cheating
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(gameOn[p]) playerPressed[0] = true;
+    if(gameOn[p]) playerPressed[p] = true;
     else fouled[p] = true;
   }
 
