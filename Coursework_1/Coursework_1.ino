@@ -95,8 +95,10 @@ void flashPlayer(){
 
 void triggered() {
   // Checking to see if the player is cheating
-  Serial.println(digitalRead(2));
-  if(gameOn[0]) playerPressed[0] = true;
-  else fouled[0] = true;
+  for (int p = 0; p < amountOfPlayers; p++) {
+    if(gameOn[p]) playerPressed[0] = true;
+    else fouled[p] = true;
+  }
+
  
 }
