@@ -69,11 +69,11 @@ void playGame(int playerIndex){
   delay(random(400,800));
   gameOn[playerIndex] = false;
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
-  if(playerPressed[playerIndex] &&!fouled) {
+  if(playerPressed[playerIndex] &&!fouled[playerIndex]) {
     score[playerIndex]+=10; // Increases the score if they pressed the button when meant to
     flashPlayer();
   }
-  else if (fouled){
+  else if (fouled[playerIndex]){
     // Player loses 50 points if cheating
     score[playerIndex]-= 50;
     fouled[playerIndex] = false;
