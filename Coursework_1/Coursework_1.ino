@@ -41,7 +41,7 @@ void setup() {
   Serial.begin(9600);
   myServo.attach(servoPin);
   for (int r =0; r < amountOfPlayers; r++) {
-     attachInterrupt(digitalPinToInterupt(playerButton[r]), playerOneInput, FALLING);
+     attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered, FALLING);
   }
   
   pinMode(whiteLED, OUTPUT);
@@ -100,10 +100,12 @@ void flashPlayer(){
   }
 }
 
-void playerOneInput() {
+void triggered() {
   Serial.println(digitalRead(2));
   if(gameOn[0]) playerPressed[0] = true;
   else fouled[0] = true;
+  
+  
   /*change this code so that white LED only switches on when button is pressed 
   at the right time*/
 }
