@@ -22,6 +22,7 @@ int whiteLED = 9;
 int servoPin = 10;
 int servoWin = 10;
 int servoLoose = 180;
+int randNumber;
 
 boolean fouled[amountOfPlayers] = {false,false};
 
@@ -59,7 +60,7 @@ void loop() {
 }
 
 void playGame(int playerIndex){
-  String msg = "Player "+String(playerIndex)+" Score: "+String(score);
+  String msg = "Player "+String(playerIndex)+" Score: "+String(score[playerIndex]);
   Serial.println(msg);
   
   randNumber = random(3); // select a random number
@@ -79,9 +80,9 @@ void playGame(int playerIndex){
   else if (fouled){
    
     score[playerIndex]-= 50;
-    fouled = false;
+    fouled[playerIndex] = false;
   }
-  else if(!playerPressed[playerIndex]) score-=10;
+  else if(!playerPressed[playerIndex]) score[playerIndex]-=10;
   
  delay(1000);
   myServo.write(servoLoose);
@@ -103,4 +104,3 @@ void playerOneInput() {
   /*change this code so that white LED only switches on when button is pressed 
   at the right time*/
 }
-
