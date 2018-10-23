@@ -39,8 +39,8 @@ boolean fouled[amountOfPlayers] = {false,false};
 //setup interrupt, button input and LED outputs
 void setup() {
   Serial.begin(9600);
-   myServo.attach(servoPin);
-  attachInterrupt(0, playerOneInput, FALLING); // specify interrupt routine
+  myServo.attach(servoPin);
+  attachInterrupt(1, playerOneInput, FALLING);
   
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
@@ -99,6 +99,7 @@ void flashPlayer(){
 }
 
 void playerOneInput() {
+  Serial.println(digitalRead(2));
   if(gameOn[0]) playerPressed[0] = true;
   else fouled[0] = true;
   /*change this code so that white LED only switches on when button is pressed 
