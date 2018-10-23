@@ -7,7 +7,7 @@ int const amountOfPlayers = 2;
 // assign LEDs and button to pins
 int ledPin[amountOfPlayers][3] = {{4,5,6},{10,11,12}};
 
-int buttonArray[amountOfPlayers] = {2, 3};
+int playerButton[amountOfPlayers] = {2, 3};
 
 boolean gameOn[amountOfPlayers] = {false, false};
 boolean playerPressed[amountOfPlayers] = {false, false};
@@ -15,7 +15,7 @@ boolean playerPressed[amountOfPlayers] = {false, false};
 int score[amountOfPlayers] = {0,0};
 
 //int playerOneButton = 2;
-//int whiteLED = 9;
+int whiteLED = 9;
 
 //int score =0;
 
@@ -54,12 +54,13 @@ void setup() {
 void loop() {
 
   playGame(0);
-  playeGame(1);
+  playGame(1);
   
 }
 
 void playGame(int playerIndex){
-  Serial.println("Player "+String(playerIndex)+" Score: "+String(score));
+  String msg = "Player "+String(playerIndex)+" Score: "+String(score);
+  Serial.println(msg);
   
   randNumber = random(3); // select a random number
   
