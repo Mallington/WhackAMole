@@ -28,7 +28,7 @@ boolean fouled[amountOfPlayers] = {false,false};
 
 // declare variables
 //int delayTime; // time delay between lights on/off
-int randNumber;
+//int randNumber;
 //int whiteLEDOn;
 
 
@@ -40,7 +40,9 @@ int randNumber;
 void setup() {
   Serial.begin(9600);
   myServo.attach(servoPin);
-  attachInterrupt(1, playerOneInput, FALLING);
+  for (int r =0; r < amountOfPlayers; r++) {
+     attachInterrupt(digitalPinToInterupt(playerButton[r]), playerOneInput, FALLING);
+  }
   
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
@@ -60,12 +62,8 @@ void loop() {
 }
 
 void playGame(int playerIndex){
-<<<<<<< HEAD
-  Serial.println("Player "+String(playerIndex)+" Score: "+String(score[playerIndex]));
-=======
   String msg = "Player "+String(playerIndex)+" Score: "+String(score[playerIndex]);
   Serial.println(msg);
->>>>>>> 6d6acab0431b6743e9391c9a05cf7db27ff29a0a
   
   randNumber = random(3); // select a random number
   
@@ -76,12 +74,12 @@ void playGame(int playerIndex){
   delay(random(200, 400)*2);
   gameOn[playerIndex] = false;
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
-  if(playerPressed[playerIndex] &&!fouled[playerIndex]) {
+  if(playerPressed[playerIndex] &&!fouled) {
    
     score[playerIndex]+=10;
     flashPlayer();
   }
-  else if (fouled[playerIndex]){
+  else if (fouled){
    
     score[playerIndex]-= 50;
     fouled[playerIndex] = false;
