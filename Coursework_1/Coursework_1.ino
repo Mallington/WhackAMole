@@ -1,49 +1,43 @@
-#include <Servo.h>
+#include <Servo.h> // Required library for the servo
 
 Servo myServo;
 
+// Sets up the number of players
 int const amountOfPlayers = 2;
 
 // assign LEDs and button to pins
-int ledPin[amountOfPlayers][3] = {{4,5,6},{10,11,12}};
+int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}}; // ** Changed to 13 to fix weird light issue **
 
 int playerButton[amountOfPlayers] = {2, 3};
 
-boolean gameOn[amountOfPlayers] = {false, false};
-boolean playerPressed[amountOfPlayers] = {false, false};
+boolean gameOn[amountOfPlayers];
+boolean playerPressed[amountOfPlayers];
+int score[amountOfPlayers];
 
-int score[amountOfPlayers] = {0,0};
 
 //int playerOneButton = 2;
 int whiteLED = 9;
-
 //int score =0;
-
 int servoPin = 10;
 int servoWin = 10;
 int servoLoose = 180;
 int randNumber;
-
 boolean fouled[amountOfPlayers] = {false,false};
-
-// declare variables
-//int delayTime; // time delay between lights on/off
-//int randNumber;
-//int whiteLEDOn;
-
-
-
-//boolean player1Pressed = false;
-//boolean gameOn1 = false;
 
 //setup interrupt, button input and LED outputs
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(9600); // Connects to the serial monitor for printing
   myServo.attach(servoPin);
   for (int r =0; r < amountOfPlayers; r++) {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered, FALLING);
   }
-  
+  for (int a = 0; a < amountOfPlayers; a ++) {
+    // Loop to set up the arrays in a better format, if more players are added
+    gameOn[a] = false;
+    playerPressed[a] = false;
+    score[a] = 0;
+  }
+
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
   pinMode(playerButton[i], INPUT);
@@ -55,36 +49,35 @@ void setup() {
 
 //run main program loop
 void loop() {
-
-  playGame(0);
-  playGame(1);
-  
+  // Runs the play game function for each of the players
+  for(int e = 0; e < amountOfPlayers; e++) {
+    playGame(e);
+  }
 }
 
 void playGame(int playerIndex){
-  String msg = "Player "+String(playerIndex)+" Score: "+String(score[playerIndex]);
-  Serial.println(msg);
+  String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
+  Serial.println(msg); // Shows the player's score
   
-  randNumber = random(3); // select a random number
+  randNumber = random(3); // select a random number for the LEDs
   
-  delay(random(100, 400));
+  delay(random(400,800));
   playerPressed[playerIndex] = false;
   gameOn[playerIndex] = true;
   digitalWrite(ledPin[playerIndex][randNumber], HIGH);
-  delay(random(200, 400)*2);
+  delay(random(400,800));
   gameOn[playerIndex] = false;
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
   if(playerPressed[playerIndex] &&!fouled) {
-   
-    score[playerIndex]+=10;
+    score[playerIndex]+=10; // Increases the score if they pressed the button when meant to
     flashPlayer();
   }
   else if (fouled){
-   
+    // Player loses 50 points if cheating
     score[playerIndex]-= 50;
     fouled[playerIndex] = false;
   }
-  else if(!playerPressed[playerIndex]) score[playerIndex]-=10;
+  else if(!playerPressed[playerIndex]) score[playerIndex]-=10; // Loses 10 points if idle
   
  delay(1000);
   myServo.write(servoLoose);
@@ -101,11 +94,9 @@ void flashPlayer(){
 }
 
 void triggered() {
+  // Checking to see if the player is cheating
   Serial.println(digitalRead(2));
   if(gameOn[0]) playerPressed[0] = true;
   else fouled[0] = true;
-  
-  
-  /*change this code so that white LED only switches on when button is pressed 
-  at the right time*/
+ 
 }
