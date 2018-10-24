@@ -29,7 +29,7 @@ void setup() {
   Serial.begin(9600); // Connects to the serial monitor for printing
   myServo.attach(servoPin);
   for (int r =0; r < amountOfPlayers; r++) {
-     attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered, FALLING);
+     attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered,RISING);
   }
   for (int a = 0; a < amountOfPlayers; a ++) {
     // Loop to set up the arrays in a better format, if more players are added
@@ -53,9 +53,12 @@ void loop() {
   // Runs the play game function for each of the players
   for(int e = 0; e < amountOfPlayers; e++) {
     playGame(e);
-  }
-}
+  } 
 
+
+//Debugging purposes
+//debug();
+}
 void playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
   Serial.println(msg); // Shows the player's score
@@ -94,10 +97,20 @@ void flashPlayer(){
   }
 }
 
+void debug(){
+  for (int p = 0; p < amountOfPlayers; p++) {
+    if(digitalRead (playerButton[p])== HIGH) Serial.println(String(playerButton[p])+"| High: "+String(p));
+    else Serial.println(String(playerButton[p])+"| LOW: "+String(p));
+}
+}
+
+
 void triggered() {
+  Serial.println("Triggered");
   // Checking to see if the player is cheating
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(playerButton[p] == LOW){
+    if(digitalRead (playerButton[p]) == HIGH){
+      Serial.println(String("Match: "+String(p)));
     if(gameOn[p]) playerPressed[p] = true;
     else fouled[p] = true;
     }
