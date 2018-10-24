@@ -1,5 +1,13 @@
 #include <Servo.h> // Required library for the servo
 
+boolean MASTER = true;
+
+int NORMAL =0;
+int SLAVE = 1;
+
+// This states what mode the arduino is in
+int MODE = MASTER;
+
 Servo myServo;
 
 // Sets up the number of players
@@ -51,15 +59,25 @@ void setup() {
 //run main program loop
 void loop() {
   // Runs the play game function for each of the players
+  swich(MODE){
+  
+  case 0
   for(int e = 0; e < amountOfPlayers; e++) {
-    playGame(e);
-  } 
+    if(playGame(e)) flashPlayer();
+  }
+  if() 
 
+  break;
+  
+  break;
 
+  case 0
+
+  }
 //Debugging purposes
 //debug();
 }
-void playGame(int playerIndex){
+boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
   Serial.println(msg); // Shows the player's score
   
@@ -74,17 +92,19 @@ void playGame(int playerIndex){
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
   if(playerPressed[playerIndex] &&!fouled[playerIndex]) {
     score[playerIndex]+=10; // Increases the score if they pressed the button when meant to
-    flashPlayer();
+    return true;
   }
   else if (fouled[playerIndex]){
     // Player loses 50 points if cheating
     score[playerIndex]-= 50;
     fouled[playerIndex] = false;
+    return false;
   }
-  else if(!playerPressed[playerIndex]) score[playerIndex]-=10; // Loses 10 points if idle
-  
- delay(1000);
-  myServo.write(servoLoose);
+  else if(!playerPressed[playerIndex]) {
+    score[playerIndex]-=10;
+    return false;
+  }
+  // Loses 10 points if idle
 }
 
 void flashPlayer(){
