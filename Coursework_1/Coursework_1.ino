@@ -71,32 +71,32 @@ void loop() {
 
   if(!playerWon){
 
-  switch(MODE){
+    switch(MODE){
 
-  case 0:
-  int e;
-  for(e = 0; e < amountOfLocalPlayers; e++) {
-    if(playGame(e)) flashPlayer();
+      case 0:
+      int e;
+      for(e = 0; e < amountOfLocalPlayers; e++) {
+          if(playGame(e)) flashPlayer();
+      }
+      if(MASTER) {
+        while (e < amountOfPlayers) if(executeRemotePlayer(e++)) flashPlayer();
+      }
+
+      break;
+
+      case 1 :
+      if(Serial.available()>0) parseIncomingSerial();
+      break;
+    }
   }
-  if(MASTER) {
-    while (e < amountOfPlayers) if(executeRemotePlayer(e++)) flashPlayer();
+
+  else{
+    setVariables(); // Resets variables for new game
   }
-
-  break;
-
-  case 1 :
-  if(Serial.available()>0) parseIncomingSerial();
-  break;
-  }
-}
-
-else{
-  setVariables(); // Resets variables for new game
-}
-
 //Debugging purposes
 //debug();
 }
+
 boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
   Serial.println(msg); // Shows the player's score
@@ -151,8 +151,8 @@ void triggered() {
   for (int p = 0; p < amountOfPlayers; p++) {
     if(digitalRead (playerButton[p]) == HIGH){
       Serial.println(String("Match: "+String(p)));
-    if(gameOn[p]) playerPressed[p] = true;
-    else fouled[p] = true;
+      if(gameOn[p]) playerPressed[p] = true;
+      else fouled[p] = true;
     }
   }
 }
@@ -186,23 +186,23 @@ void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
   
 }
 
-  boolean waitForResult(){ // METHOD UNFINISHED
+boolean waitForResult(){ // METHOD UNFINISHED
     boolean wackedMole = false;
 
 
 
     return wackedMole; // returns whether player was successful or not
-  }
+}
 
-  boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
-    int remotePlayerID = localID - amountOfLocalPlayers;
+boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
+  int remotePlayerID = localID - amountOfLocalPlayers;
 
-    requestTurn(remotePlayerID);
+  requestTurn(remotePlayerID);
     
-    if(waitForResult()) { // Returns boolean: True - means player hit mole, False - means player missed
-      score[playerIndex] ++;
-      return true;
-    }
-    else return false;
+  if(waitForResult()) { // Returns boolean: True - means player hit mole, False - means player missed
+    score[playerIndex] ++;
+    return true;
+  }
+  else return false;
 
 }
