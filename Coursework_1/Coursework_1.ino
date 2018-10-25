@@ -1,17 +1,20 @@
 #include <Servo.h> // Required library for the servo
 
-boolean MASTER = true;
+boolean MASTER = false;
 
 int NORMAL =0;
 int SLAVE = 1;
 
-// This states what mode the arduino is in
-int MODE = MASTER;
+boolean playerWon = false;
+
+// IMPORTANT PARAMETER: This states what mode the arduino is in
+int MODE = NORMAL;
 
 Servo myServo;
 
 // Sets up the number of players
 int const amountOfPlayers = 2;
+int const amountOfLocalPlayers = 2;
 
 // assign LEDs and button to pins
 int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}}; // ** Changed to 13 to fix weird light issue **
@@ -36,17 +39,11 @@ boolean fouled[amountOfPlayers];
 void setup() {
   Serial.begin(9600); // Connects to the serial monitor for printing
   myServo.attach(servoPin);
+
   for (int r =0; r < amountOfPlayers; r++) {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered,RISING);
   }
-  for (int a = 0; a < amountOfPlayers; a ++) {
-    // Loop to set up the arrays in a better format, if more players are added
-    gameOn[a] = false;
-    playerPressed[a] = false;
-    fouled[a] = false;
-    score[a] = 0;
-  }
-
+  setVariables();
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
   pinMode(playerButton[i], INPUT);
@@ -56,33 +53,56 @@ void setup() {
   }
 }
 
+void setVariables(){
+  playerWon = false;
+
+  for (int a = 0; a < amountOfPlayers; a ++) {
+    // Loop to set up the arrays in a better format, if more players are added
+    gameOn[a] = false;
+    playerPressed[a] = false;
+    fouled[a] = false;
+    score[a] = 0;
+  }
+}
+
 //run main program loop
 void loop() {
   // Runs the play game function for each of the players
-  swich(MODE){
-  
-  case 0
-  for(int e = 0; e < amountOfPlayers; e++) {
+
+  if(!playerWon){
+
+  switch(MODE){
+
+  case 0:
+  int e;
+  for(e = 0; e < amountOfLocalPlayers; e++) {
     if(playGame(e)) flashPlayer();
   }
-  if() 
-
-  break;
-  
-  break;
-
-  case 0
-
+  if(MASTER) {
+    while (e < amountOfPlayers) if(executeRemotePlayer(e++)) flashPlayer();
   }
+
+  break;
+
+  case 1 :
+  if(Serial.available()>0) parseIncomingSerial();
+  break;
+  }
+}
+
+else{
+  setVariables(); // Resets variables for new game
+}
+
 //Debugging purposes
 //debug();
 }
 boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
   Serial.println(msg); // Shows the player's score
-  
+
   randNumber = random(3); // select a random number for the LEDs
-  
+
   delay(random(400,800));
   playerPressed[playerIndex] = false;
   gameOn[playerIndex] = true;
@@ -91,7 +111,7 @@ boolean playGame(int playerIndex){
   gameOn[playerIndex] = false;
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
   if(playerPressed[playerIndex] &&!fouled[playerIndex]) {
-    score[playerIndex]+=10; // Increases the score if they pressed the button when meant to
+    score[playerIndex]+=1; // Increases the score if they pressed the button when meant to
     return true;
   }
   else if (fouled[playerIndex]){
@@ -101,7 +121,7 @@ boolean playGame(int playerIndex){
     return false;
   }
   else if(!playerPressed[playerIndex]) {
-    score[playerIndex]-=10;
+    score[playerIndex]-=1;
     return false;
   }
   // Loses 10 points if idle
@@ -135,6 +155,54 @@ void triggered() {
     else fouled[p] = true;
     }
   }
+}
 
- 
+/* Please note Comms protocol as follows
+
+For Master to client playGame:
+Command (without qoutes): "$<Integer of player>"
+Note that Integer of player is relevant only to the clients indexes therefore player 2 (Index starting at 0: obvs) would be 0
+eg. for player 0: "$0"
+
+For client return score back to master after request: "=<Turn won integer>"
+where 1 is sucessfull and 0 is unsucessful
+eg. For a sucessfull attempt: "=1", unsucessful: "=0"
+
+
+*/
+
+//Client to server: RTX
+
+void parseIncomingSerial(){ // METHOD UNFINISHED
+  String append = ""; // Holds incoming command;
+  while(Serial.available()>0) append+=String((char)Serial.read());
+}
+
+
+//Server to client: TX
+
+void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
+
+  
+}
+
+  boolean waitForResult(){ // METHOD UNFINISHED
+    boolean wackedMole = false;
+
+
+
+    return wackedMole; // returns whether player was successful or not
+  }
+
+  boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
+    int remotePlayerID = localID - amountOfLocalPlayers;
+
+    requestTurn(remotePlayerID);
+    
+    if(waitForResult()) { // Returns boolean: True - means player hit mole, False - means player missed
+      score[playerIndex] ++;
+      return true;
+    }
+    else return false;
+
 }
