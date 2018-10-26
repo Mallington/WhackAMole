@@ -1,6 +1,7 @@
 #include <Servo.h> // Required library for the servo
 
 boolean MASTER = false;
+//boolean MASTER = true;
 
 int NORMAL =0;
 int SLAVE = 1;
@@ -8,7 +9,8 @@ int SLAVE = 1;
 boolean playerWon = false;
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
-int MODE = NORMAL;
+//int MODE = NORMAL;
+int MODE = SLAVE;
 
 Servo myServo;
 
@@ -174,24 +176,28 @@ eg. For a sucessfull attempt: "=1", unsucessful: "=0"
 //Client to server: RTX
 
 void parseIncomingSerial(){ // METHOD UNFINISHED
-  String append = ""; // Holds incoming command;
-  while(Serial.available()>0) append+=String((char)Serial.read());
+  String serverCommand = ""; // Holds incoming command;
+  boolean successful = false;
+  while(Serial.available()>0) serverCommand+=String((char)Serial.read());
+  if (serverCommand[0] == '$') successful = playGame(serverCommand[1]);
+  if (successful) Serial.write("=1");
+  else Serial.write("=0");
 }
 
 
 //Server to client: TX
 
 void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
-
-  
+  byte command[2] = {'$',remotePlayerID};
+  Serial.write(command,2);
 }
 
 boolean waitForResult(){ // METHOD UNFINISHED
-    boolean wackedMole = false;
-
-
-
-    return wackedMole; // returns whether player was successful or not
+  boolean wackedMole = false;
+  String clientCommand = "";
+  while(Serial.available()>0) clientCommand+=String((char)Serial.read());
+  if (clientCommand[0] == '=') wackedMole = true;
+  return wackedMole; // returns whether player was successful or not
 }
 
 boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
@@ -200,7 +206,7 @@ boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods ar
   requestTurn(remotePlayerID);
     
   if(waitForResult()) { // Returns boolean: True - means player hit mole, False - means player missed
-    score[playerIndex] ++;
+    score[localID] ++;
     return true;
   }
   else return false;
