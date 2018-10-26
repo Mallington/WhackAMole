@@ -7,6 +7,7 @@ int NORMAL =0;
 int SLAVE = 1;
 
 boolean playerWon = false;
+boolean debugPrint = false;
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
 //int MODE = NORMAL;
@@ -101,7 +102,7 @@ void loop() {
 
 boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
-  Serial.println(msg); // Shows the player's score
+  printDebug(msg); // Shows the player's score
 
   randNumber = random(3); // select a random number for the LEDs
 
@@ -141,18 +142,22 @@ void flashPlayer(){
 
 void debug(){
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(digitalRead (playerButton[p])== HIGH) Serial.println(String(playerButton[p])+"| High: "+String(p));
-    else Serial.println(String(playerButton[p])+"| LOW: "+String(p));
+    if(digitalRead (playerButton[p])== HIGH) printDebug(String(playerButton[p])+"| High: "+String(p));
+    else printDebug(String(playerButton[p])+"| LOW: "+String(p));
+  }
 }
+
+void printDebug(String in) {
+  if(debugPrint) printDebug(in);
 }
 
 
 void triggered() {
-  Serial.println("Triggered");
+  printDebug("Triggered");
   // Checking to see if the player is cheating
   for (int p = 0; p < amountOfPlayers; p++) {
     if(digitalRead (playerButton[p]) == HIGH){
-      Serial.println(String("Match: "+String(p)));
+      printDebug(String("Match: "+String(p)));
       if(gameOn[p]) playerPressed[p] = true;
       else fouled[p] = true;
     }
@@ -179,6 +184,7 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
   String serverCommand = ""; // Holds incoming command;
   boolean successful = false;
   while(Serial.available()>0) serverCommand+=String((char)Serial.read());
+  printDebug("Command: "+String(serverCommand[0])+", no."+String(serverCommand[1]));
   if (serverCommand[0] == '$') successful = playGame(serverCommand[1]);
   if (successful) Serial.write("=1");
   else Serial.write("=0");
