@@ -178,10 +178,13 @@ eg. For a sucessfull attempt: "=1", unsucessful: "=0"
 void parseIncomingSerial(){ // METHOD UNFINISHED
   String serverCommand = ""; // Holds incoming command;
   boolean successful = false;
-  while(Serial.available()>0) serverCommand+=String((char)Serial.read());
-  if (serverCommand[0] == '$') successful = playGame(serverCommand[1]);
-  if (successful) Serial.write("=1");
-  else Serial.write("=0");
+  char command;
+  while(Serial.available()>0) if ((command =(char)Serial.read())== '$'){ 
+    
+    successful = playGame(Serial.read());
+     if (successful) Serial.write("=1");
+  else Serial.println("=0");
+    }
 }
 
 
@@ -193,10 +196,21 @@ void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
 }
 
 boolean waitForResult(){ // METHOD UNFINISHED
-  boolean wackedMole = false;
+  boolean captured = false;
   String clientCommand = "";
-  while(Serial.available()>0) clientCommand+=String((char)Serial.read());
-  if (clientCommand[0] == '=') wackedMole = true;
+  
+  while(true){
+  while(Serial.available()>0) {
+    clientCommand+=String((char)Serial.read());
+    captured = true;
+  }
+  if(captured){
+  if(clientCommand.equals("=0")) return false;
+   if(clientCommand.equals("=1")) return true;
+   clientCommand = "";
+  }
+
+  }
   return wackedMole; // returns whether player was successful or not
 }
 
