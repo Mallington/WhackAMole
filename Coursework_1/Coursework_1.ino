@@ -1,7 +1,6 @@
 #include <Servo.h> // Required library for the servo
 
 boolean MASTER = false;
-//boolean MASTER = true;
 
 int NORMAL =0;
 int SLAVE = 1;
@@ -10,31 +9,29 @@ boolean playerWon = false;
 boolean debugPrint = false;
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
-//int MODE = NORMAL;
 int MODE = SLAVE;
 
 Servo myServo;
-
 // Sets up the number of players
-int const amountOfPlayers = 2;
+int const amountOfPlayers = 2; // *** Is this meant to also be 2 if we're getting a 4 player game working ***?
 int const amountOfLocalPlayers = 2;
+int score[amountOfPlayers];
 
-// assign LEDs and button to pins
-int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}}; // ** Changed to 13 to fix weird light issue **
-
+// assign LEDs, buttons and the servo to their pins
+int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}};
 int playerButton[amountOfPlayers] = {2, 3};
+int whiteLED = 9;
+int servoPin = 10;
+int servoWin = 10;
+int servoLose = 180;
+
 
 boolean gameOn[amountOfPlayers];
 boolean playerPressed[amountOfPlayers];
-int score[amountOfPlayers];
 
 
-//int playerOneButton = 2;
-int whiteLED = 9;
-//int score =0;
-int servoPin = 10;
-int servoWin = 10;
-int servoLoose = 180;
+
+
 int randNumber;
 boolean fouled[amountOfPlayers];
 
@@ -49,10 +46,10 @@ void setup() {
   setVariables();
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
-  pinMode(playerButton[i], INPUT);
-  for (int j=0; j<3; j++){
-    pinMode(ledPin[i][j], OUTPUT);
-  }
+    pinMode(playerButton[i], INPUT);
+    for (int j=0; j<3; j++){
+      pinMode(ledPin[i][j], OUTPUT);
+    }
   }
 }
 
