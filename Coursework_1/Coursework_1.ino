@@ -183,6 +183,7 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   char command;
   while(Serial.available()>0) if ((command =(char)Serial.read())== '$'){ 
 <<<<<<< HEAD
@@ -204,6 +205,8 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
 >>>>>>> parent of afdcaa1... Fix Needed
 =======
 >>>>>>> parent of afdcaa1... Fix Needed
+=======
+>>>>>>> parent of afdcaa1... Fix Needed
   while(Serial.available()>0) serverCommand+=String((char)Serial.read());
   printDebug("Command: "+String(serverCommand[0])+", no."+String(serverCommand[1]));
   if (serverCommand[0] == '$') successful = playGame(serverCommand[1]);
@@ -211,6 +214,9 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
   else Serial.write("=0");
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of afdcaa1... Fix Needed
+=======
 >>>>>>> parent of afdcaa1... Fix Needed
 =======
 >>>>>>> parent of afdcaa1... Fix Needed
@@ -229,6 +235,7 @@ void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
 boolean waitForResult(){ // METHOD UNFINISHED
   boolean wackedMole = false;
   String clientCommand = "";
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -262,6 +269,11 @@ boolean waitForResult(){ // METHOD UNFINISHED
     }
   }
 >>>>>>> afdcaa19bfe6c1e332ebb7612da35658a658ff5e
+=======
+  while(Serial.available()>0) clientCommand+=String((char)Serial.read());
+  if (clientCommand[0] == '=') wackedMole = true;
+  return wackedMole; // returns whether player was successful or not
+>>>>>>> parent of afdcaa1... Fix Needed
 =======
   while(Serial.available()>0) clientCommand+=String((char)Serial.read());
   if (clientCommand[0] == '=') wackedMole = true;
