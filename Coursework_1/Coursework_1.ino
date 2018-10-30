@@ -1,6 +1,6 @@
 #include <Servo.h> // Required library for the servo
 
-boolean MASTER = false;
+boolean MASTER = true;
 
 int NORMAL =0;
 int SLAVE = 1;
@@ -9,11 +9,11 @@ boolean playerWon = false;
 boolean debugPrint = false;
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
-int MODE = SLAVE;
+int MODE = NORMAL;
 
 Servo myServo;
 // Sets up the number of players
-int const amountOfPlayers = 2; // *** Is this meant to also be 2 if we're getting a 4 player game working ***?
+int const amountOfPlayers = 4; // *** Is this meant to also be 2 if we're getting a 4 player game working ***?
 int const amountOfLocalPlayers = 2;
 int score[amountOfPlayers];
 
@@ -99,7 +99,7 @@ void loop() {
 
 boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
-  printDebug(msg); // Shows the player's score
+  //Serial.println(msg); // Shows the player's score
 
   randNumber = random(3); // select a random number for the LEDs
 
@@ -180,27 +180,39 @@ eg. For a sucessfull attempt: "=1", unsucessful: "=0"
 void parseIncomingSerial(){ // METHOD UNFINISHED
   String serverCommand = ""; // Holds incoming command;
   boolean successful = false;
-  while(Serial.available()>0) serverCommand+=String((char)Serial.read());
-  printDebug("Command: "+String(serverCommand[0])+", no."+String(serverCommand[1]));
-  if (serverCommand[0] == '$') successful = playGame(serverCommand[1]);
-  if (successful) Serial.write("=1");
-  else Serial.write("=0");
-}
+  char command;
+  while(Serial.available()>0) if ((command =(char)Serial.read())== '$'){ 
 
+    successful = playGame(Serial.read());
+     if (successful) Serial.write("=1");
+  else Serial.println("=0");
+    }
+}
 
 //Server to client: TX
 
 void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
   byte command[2] = {'$',remotePlayerID};
   Serial.write(command,2);
+  Serial.flush();
 }
 
 boolean waitForResult(){ // METHOD UNFINISHED
-  boolean wackedMole = false;
+  boolean captured = false;
   String clientCommand = "";
-  while(Serial.available()>0) clientCommand+=String((char)Serial.read());
-  if (clientCommand[0] == '=') wackedMole = true;
-  return wackedMole; // returns whether player was successful or not
+
+  while(true){
+    while(Serial.available()>0) {
+      clientCommand+=String((char)Serial.read());
+      captured = true;
+    }
+    if(captured){
+      if(clientCommand.equals("=0")) return false;
+      if(clientCommand.equals("=1")) return true;
+      captured = false;
+      clientCommand = "";
+    }
+  }
 }
 
 boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
