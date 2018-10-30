@@ -1,39 +1,37 @@
 #include <Servo.h> // Required library for the servo
 
-boolean MASTER = false;
-//boolean MASTER = true;
+boolean MASTER = true;
 
 int NORMAL =0;
 int SLAVE = 1;
 
 boolean playerWon = false;
+boolean debugPrint = false;
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
-//int MODE = NORMAL;
-int MODE = SLAVE;
+int MODE = NORMAL;
 
 Servo myServo;
-
 // Sets up the number of players
-int const amountOfPlayers = 2;
+int const amountOfPlayers = 4; // *** Is this meant to also be 2 if we're getting a 4 player game working ***?
 int const amountOfLocalPlayers = 2;
+int score[amountOfPlayers];
 
-// assign LEDs and button to pins
-int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}}; // ** Changed to 13 to fix weird light issue **
-
+// assign LEDs, buttons and the servo to their pins
+int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}};
 int playerButton[amountOfPlayers] = {2, 3};
+int whiteLED = 9;
+int servoPin = 10;
+int servoWin = 10;
+int servoLose = 180;
+
 
 boolean gameOn[amountOfPlayers];
 boolean playerPressed[amountOfPlayers];
-int score[amountOfPlayers];
 
 
-//int playerOneButton = 2;
-int whiteLED = 9;
-//int score =0;
-int servoPin = 10;
-int servoWin = 10;
-int servoLoose = 180;
+
+
 int randNumber;
 boolean fouled[amountOfPlayers];
 
@@ -48,10 +46,10 @@ void setup() {
   setVariables();
   pinMode(whiteLED, OUTPUT);
   for(int i =0; i< amountOfPlayers; i++){
-  pinMode(playerButton[i], INPUT);
-  for (int j=0; j<3; j++){
-    pinMode(ledPin[i][j], OUTPUT);
-  }
+    pinMode(playerButton[i], INPUT);
+    for (int j=0; j<3; j++){
+      pinMode(ledPin[i][j], OUTPUT);
+    }
   }
 }
 
@@ -101,7 +99,7 @@ void loop() {
 
 boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
-  Serial.println(msg); // Shows the player's score
+  //Serial.println(msg); // Shows the player's score
 
   randNumber = random(3); // select a random number for the LEDs
 
@@ -141,18 +139,22 @@ void flashPlayer(){
 
 void debug(){
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(digitalRead (playerButton[p])== HIGH) Serial.println(String(playerButton[p])+"| High: "+String(p));
-    else Serial.println(String(playerButton[p])+"| LOW: "+String(p));
+    if(digitalRead (playerButton[p])== HIGH) printDebug(String(playerButton[p])+"| High: "+String(p));
+    else printDebug(String(playerButton[p])+"| LOW: "+String(p));
+  }
 }
+
+void printDebug(String in) {
+  if(debugPrint) printDebug(in);
 }
 
 
 void triggered() {
-  Serial.println("Triggered");
+  printDebug("Triggered");
   // Checking to see if the player is cheating
   for (int p = 0; p < amountOfPlayers; p++) {
     if(digitalRead (playerButton[p]) == HIGH){
-      Serial.println(String("Match: "+String(p)));
+      printDebug(String("Match: "+String(p)));
       if(gameOn[p]) playerPressed[p] = true;
       else fouled[p] = true;
     }
@@ -180,24 +182,34 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
   boolean successful = false;
   char command;
   while(Serial.available()>0) if ((command =(char)Serial.read())== '$'){ 
+<<<<<<< HEAD
     
     successful = playGame(Serial.read());
      if (successful) Serial.write("=1");
   else Serial.println("=0");
     }
 }
+=======
+>>>>>>> afdcaa19bfe6c1e332ebb7612da35658a658ff5e
 
+    successful = playGame(Serial.read());
+     if (successful) Serial.write("=1");
+  else Serial.println("=0");
+    }
+}
 
 //Server to client: TX
 
 void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
   byte command[2] = {'$',remotePlayerID};
   Serial.write(command,2);
+  Serial.flush();
 }
 
 boolean waitForResult(){ // METHOD UNFINISHED
   boolean captured = false;
   String clientCommand = "";
+<<<<<<< HEAD
   
   while(true){
   while(Serial.available()>0) {
@@ -212,6 +224,21 @@ boolean waitForResult(){ // METHOD UNFINISHED
 
   }
   return wackedMole; // returns whether player was successful or not
+=======
+
+  while(true){
+    while(Serial.available()>0) {
+      clientCommand+=String((char)Serial.read());
+      captured = true;
+    }
+    if(captured){
+      if(clientCommand.equals("=0")) return false;
+      if(clientCommand.equals("=1")) return true;
+      captured = false;
+      clientCommand = "";
+    }
+  }
+>>>>>>> afdcaa19bfe6c1e332ebb7612da35658a658ff5e
 }
 
 boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
