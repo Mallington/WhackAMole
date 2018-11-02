@@ -1,6 +1,6 @@
 #include <Servo.h> // Required library for the servo
 
-boolean MASTER = false;
+boolean MASTER = true;
 
 int NORMAL = 0;
 int SLAVE = 1;
@@ -39,7 +39,6 @@ boolean fouled[amountOfPlayers];
 void setup() {
   Serial.begin(9600); // Connects to the serial monitor for printing
   myServo.attach(servoPin);
-
   for (int r = 0; r < amountOfPlayers; r++) {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered,RISING);
   }
@@ -79,7 +78,9 @@ void loop() {
           if(playGame(e)) flashPlayer();
       }
       if(MASTER) {
-        while (e < amountOfPlayers) if(executeRemotePlayer(e++)) flashPlayer();
+        while (e < amountOfPlayers) {
+          if(executeRemotePlayer(e++)) flashPlayer();
+        }
       }
 
       break;
@@ -150,7 +151,6 @@ void printDebug(String in) {
 
 
 void triggered() {
-  printDebug("Triggered");
   // Checking to see if the player is cheating
   for (int p = 0; p < amountOfPlayers; p++) {
     if(digitalRead (playerButton[p]) == HIGH){
@@ -181,16 +181,21 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
   String serverCommand = ""; // Holds incoming command;
   boolean successful = false;
   char command;
-  while(Serial.available()>0) if ((command =(char)Serial.read())== 'a'){ 
-    //Serial.println("Playing a game");
+  while(Serial.available()>0) {
+    if ((command =(char)Serial.read())== 'a'){ 
+    while(!(Serial.available()>0));
     int no = Serial.read();
-    Serial.println(no);
     successful = playGame(no);
-    if (successful) Serial.write("b1");
-    else Serial.println("b0");
+    if (successful) {
+      Serial.write("b1");
+      flashPlayer();
     }
+    else {
+      Serial.write("b0");
+    }
+    }
+  }
 }
-
 //Server to client: TX
 
 void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
@@ -203,19 +208,17 @@ void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
 boolean waitForResult(){ // METHOD UNFINISHED
   boolean captured = false;
   String clientCommand = "";
-  boolean looping = true;
-  while(looping){
+  char command;
+  int number = 0;
+  while (!captured) {
     while(Serial.available()>0) {
-      clientCommand+= String((char)Serial.read());
-      captured = true;
-    }
-    if(captured){
-      if(clientCommand.equals("b0")) return false;
-      if(clientCommand.equals("b1")) return true;
-      captured = false;
-      clientCommand = "";
-    }
+      if ((command =(char)Serial.read())== 'b'){ 
+      while(!(Serial.available()>0));
+      int no = Serial.read();
+      return (no == 1);
+      }
   }
+}
 }
 
 boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
