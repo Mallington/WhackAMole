@@ -1,8 +1,8 @@
 #include <Servo.h> // Required library for the servo
 
-boolean MASTER = true;
+boolean MASTER = false;
 
-int NORMAL =0;
+int NORMAL = 0;
 int SLAVE = 1;
 
 boolean playerWon = false;
@@ -40,14 +40,14 @@ void setup() {
   Serial.begin(9600); // Connects to the serial monitor for printing
   myServo.attach(servoPin);
 
-  for (int r =0; r < amountOfPlayers; r++) {
+  for (int r = 0; r < amountOfPlayers; r++) {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered,RISING);
   }
   setVariables();
   pinMode(whiteLED, OUTPUT);
-  for(int i =0; i< amountOfPlayers; i++){
+  for(int i = 0; i< amountOfPlayers; i++){
     pinMode(playerButton[i], INPUT);
-    for (int j=0; j<3; j++){
+    for (int j = 0; j<3; j++){
       pinMode(ledPin[i][j], OUTPUT);
     }
   }
@@ -111,7 +111,7 @@ boolean playGame(int playerIndex){
   gameOn[playerIndex] = false;
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
   if(playerPressed[playerIndex] &&!fouled[playerIndex]) {
-    score[playerIndex]+=1; // Increases the score if they pressed the button when meant to
+    score[playerIndex]+= 1; // Increases the score if they pressed the button when meant to
     return true;
   }
   else if (fouled[playerIndex]){
@@ -121,7 +121,7 @@ boolean playGame(int playerIndex){
     return false;
   }
   else if(!playerPressed[playerIndex]) {
-    score[playerIndex]-=1;
+    score[playerIndex]-= 1;
     return false;
   }
   // Loses 10 points if idle
@@ -129,7 +129,7 @@ boolean playGame(int playerIndex){
 
 void flashPlayer(){
   myServo.write(servoWin);
-  for(int i =0; i<2; i++){
+  for(int i = 0; i<2; i++){
     digitalWrite(whiteLED, HIGH);
     delay(500);
     digitalWrite(whiteLED, LOW);
@@ -139,7 +139,7 @@ void flashPlayer(){
 
 void debug(){
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(digitalRead (playerButton[p])== HIGH) printDebug(String(playerButton[p])+"| High: "+String(p));
+    if(digitalRead (playerButton[p]) == HIGH) printDebug(String(playerButton[p])+"| High: "+String(p));
     else printDebug(String(playerButton[p])+"| LOW: "+String(p));
   }
 }
@@ -164,13 +164,13 @@ void triggered() {
 /* Please note Comms protocol as follows
 
 For Master to client playGame:
-Command (without qoutes): "$<Integer of player>"
+Command (without qoutes): "a<Integer of player>"
 Note that Integer of player is relevant only to the clients indexes therefore player 2 (Index starting at 0: obvs) would be 0
-eg. for player 0: "$0"
+eg. for player 0: "a0"
 
-For client return score back to master after request: "=<Turn won integer>"
+For client return score back to master after request: "b<Turn won integer>"
 where 1 is sucessfull and 0 is unsucessful
-eg. For a sucessfull attempt: "=1", unsucessful: "=0"
+eg. For a sucessfull attempt: "b1", unsucessful: "b0"
 
 
 */
@@ -181,18 +181,21 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
   String serverCommand = ""; // Holds incoming command;
   boolean successful = false;
   char command;
-  while(Serial.available()>0) if ((command =(char)Serial.read())== '$'){ 
-
-    successful = playGame(Serial.read());
-     if (successful) Serial.write("=1");
-  else Serial.println("=0");
+  while(Serial.available()>0) if ((command =(char)Serial.read())== 'a'){ 
+    //Serial.println("Playing a game");
+    int no = Serial.read();
+    Serial.println(no);
+    successful = playGame(no);
+    if (successful) Serial.write("b1");
+    else Serial.println("b0");
     }
 }
 
 //Server to client: TX
 
 void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
-  byte command[2] = {'$',remotePlayerID};
+  byte command[2] = {'a',remotePlayerID};
+  //Serial.println(command[1]);
   Serial.write(command,2);
   Serial.flush();
 }
@@ -200,15 +203,15 @@ void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
 boolean waitForResult(){ // METHOD UNFINISHED
   boolean captured = false;
   String clientCommand = "";
-
-  while(true){
+  boolean looping = true;
+  while(looping){
     while(Serial.available()>0) {
-      clientCommand+=String((char)Serial.read());
+      clientCommand+= String((char)Serial.read());
       captured = true;
     }
     if(captured){
-      if(clientCommand.equals("=0")) return false;
-      if(clientCommand.equals("=1")) return true;
+      if(clientCommand.equals("b0")) return false;
+      if(clientCommand.equals("b1")) return true;
       captured = false;
       clientCommand = "";
     }
