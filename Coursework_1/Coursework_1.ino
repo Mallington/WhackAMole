@@ -5,18 +5,23 @@ int SLAVE = 1;
 
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
-int MODE = NORMAL;
-boolean MASTER = true;
+int MODE = SLAVE;
+boolean MASTER = false;
 
 boolean playerWon = false;
 boolean debugPrint = false;
 
-Servo myServo;
+
+
 // Sets up the number of players
 int const amountOfPlayers = 4;
 int const amountOfLocalPlayers = 2;
 int score[amountOfPlayers];
 int difficulty = 1;
+
+Servo servo;
+int servoPin = 10;
+int servoPos[amountOfPlayers] = {180,120,70,20};
 
 // assign LEDs, buttons and the servo to their pins
 int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}};
@@ -24,7 +29,6 @@ int playerButton[amountOfPlayers] = {2, 3};
 
 int whiteLED = 8;
 int buzzer = 9;
-int servoPin = 10;
 int servoWin = 10;
 int servoLose = 180;
 int difficultyDial = A0;
@@ -43,7 +47,8 @@ boolean fouled[amountOfPlayers];
 void setup() {
 //setup interrupt, button input and LED outputs
   Serial.begin(9600); // Connects to the serial monitor for printing
-  myServo.attach(servoPin);
+  servo.attach(servoPin);
+  servo.write(0);
   for (int r = 0; r < amountOfPlayers; r++) {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered,RISING);
   }
@@ -79,6 +84,12 @@ void setVariables(){
   }
 }
 
+void setPlayerDial(int playerID){
+  if(MASTER){
+    sendCmd('(', servoPos[playerID]);
+  }
+}
+
 int readDifficultyDial(){
 // Reads the potentiometer's resistance and maps it to a difficulty level
   int sensorValue = analogRead(difficultyDial);
@@ -99,11 +110,15 @@ void loop() {
       updateDifficulty();
       int e;
       for(e = 0; e < amountOfLocalPlayers; e++) {
+        setPlayerDial(e);
           if(playGame(e)) flashPlayer(score[e], true);
       }
       if(MASTER) {
         while (e < amountOfPlayers) {
-          if(executeRemotePlayer(e++)) flashPlayer(score[e],false);
+          setPlayerDial(e);
+          if(executeRemotePlayer(e++)) {
+            flashPlayer(score[e],false);
+          }
         }
       }
       int winner;
@@ -121,6 +136,7 @@ void loop() {
     setVariables(); // Resets variables for new game
   }
 
+}
 int getWinningPlayer(){
 // Returns the player number of the winner
   for (int a = 0; a < amountOfPlayers; a ++) {
@@ -197,7 +213,7 @@ boolean playGame(int playerIndex){
 
 void flashPlayer(int score, boolean flashRemote){
 // Flashes the white LEDs, moves the servos and plays a noise on all of the boards
-  myServo.write(servoWin)
+  
   if(flashRemote && MASTER) sendCmd('*', score); //sends flash request to client, with score as payload
   for(int i = 0; i<2; i++){
     digitalWrite(whiteLED, HIGH);
@@ -211,6 +227,12 @@ void flashPlayer(int score, boolean flashRemote){
 
 void ledTest(){
 // Lights up all of the LEDs in order to show all is working
+   for(int i=0; i<=180; i++){
+    servo.write(180);
+    delay(10);
+   }
+   servo.write(0);
+
    for(int i = 0; i< amountOfPlayers; i++){
     for (int j = 0; j<3; j++){
       delay(100);
@@ -310,8 +332,8 @@ byte* sendCmd(char header, int payload){
 
 void parseIncomingSerial(){
 // Checks all incoming serial commands, then parses only the needed ones
-    char expectedTypes[6] = {'$', '#','*','!', '^', '&'}; // Expected header types
-    byte* ret = awaitHeader(expectedTypes,6,2); // Waits for one of the headers
+    char expectedTypes[7] = {'$', '#','*','!', '^', '&', '('}; // Expected header types
+    byte* ret = awaitHeader(expectedTypes,7,2); // Waits for one of the headers
   switch (ret[0]){ //Based on header, the slave executes accordingly
     case '$': //Play game command
     if (playGame(ret[1])) {
@@ -343,6 +365,10 @@ void parseIncomingSerial(){
     case '&': // Play winning animation command
     playWinningAnimation(ret[1]);
     setVariables();
+    break;
+
+    case '(': // Sets servo position
+    servo.write(ret[1]);
     break;
   }
 }
