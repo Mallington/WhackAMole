@@ -20,7 +20,9 @@ int score[amountOfPlayers];
 // assign LEDs, buttons and the servo to their pins
 int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}};
 int playerButton[amountOfPlayers] = {2, 3};
-int whiteLED = 9;
+
+int whiteLED = 8;
+int buzzer = 9;
 int servoPin = 10;
 int servoWin = 10;
 int servoLose = 180;
@@ -43,13 +45,23 @@ void setup() {
      attachInterrupt(digitalPinToInterrupt(playerButton[r]), triggered,RISING);
   }
   setVariables();
+  
   pinMode(whiteLED, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  
   for(int i = 0; i< amountOfPlayers; i++){
     pinMode(playerButton[i], INPUT);
     for (int j = 0; j<3; j++){
       pinMode(ledPin[i][j], OUTPUT);
     }
   }
+
+  if(MASTER){
+  waitForSlave();
+  sendCmd('#', 0); // Initiates Remote LED test
+  ledTest(); //Local Led Test
+  }
+  
 }
 
 void setVariables(){
@@ -75,11 +87,11 @@ void loop() {
       case 0:
       int e;
       for(e = 0; e < amountOfLocalPlayers; e++) {
-          if(playGame(e)) flashPlayer();
+          if(playGame(e)) flashPlayer(score[e], true);
       }
       if(MASTER) {
         while (e < amountOfPlayers) {
-          if(executeRemotePlayer(e++)) flashPlayer();
+          if(executeRemotePlayer(e++)) flashPlayer(score[e],false);
         }
       }
 
@@ -128,13 +140,29 @@ boolean playGame(int playerIndex){
   // Loses 10 points if idle
 }
 
-void flashPlayer(){
+void flashPlayer(int score, boolean flashRemote){
   myServo.write(servoWin);
+
+  if(flashRemote && MASTER) sendCmd('*', score); //sends flash request to client, with score as payload
+  
   for(int i = 0; i<2; i++){
     digitalWrite(whiteLED, HIGH);
+    tone(buzzer,score*100);
     delay(500);
     digitalWrite(whiteLED, LOW);
+    noTone(buzzer);
     delay(500);
+  }
+}
+
+void ledTest(){
+   for(int i = 0; i< amountOfPlayers; i++){
+    for (int j = 0; j<3; j++){
+      delay(100);
+      digitalWrite(ledPin[i][j], HIGH);
+      delay(100);
+      digitalWrite(ledPin[i][j], LOW);
+    }
   }
 }
 
@@ -175,50 +203,94 @@ eg. For a sucessfull attempt: "b1", unsucessful: "b0"
 
 */
 
-//Client to server: RTX
+// General serial commands
+byte* awaitHeader(char* ID, int idAmount, int bufferSize){
 
-void parseIncomingSerial(){ // METHOD UNFINISHED
-  String serverCommand = ""; // Holds incoming command;
-  boolean successful = false;
-  char command;
-  while(Serial.available()>0) {
-    if ((command =(char)Serial.read())== 'a'){ 
-    while(!(Serial.available()>0));
-    int no = Serial.read();
-    successful = playGame(no);
-    if (successful) {
-      Serial.write("b1");
-      flashPlayer();
-    }
-    else {
-      Serial.write("b0");
-    }
-    }
-  }
-}
-//Server to client: TX
-
-void requestTurn(int remotePlayerID){ // METHOD UNFINISHED
-  byte command[2] = {'a',remotePlayerID};
-  //Serial.println(command[1]);
-  Serial.write(command,2);
-  Serial.flush();
-}
-
-boolean waitForResult(){ // METHOD UNFINISHED
-  boolean captured = false;
   String clientCommand = "";
-  char command;
-  int number = 0;
-  while (!captured) {
+  byte* ret = new byte[bufferSize];
+  
+  while (true) {
     while(Serial.available()>0) {
-      if ((command =(char)Serial.read())== 'b'){ 
-      while(!(Serial.available()>0));
-      int no = Serial.read();
-      return (no == 1);
+      char command = Serial.read();
+      boolean cmdFound = false;
+      
+      for(int i =0; i< idAmount; i++) if(command == ID[i]) cmdFound = true;
+      if (cmdFound){ 
+      ret[0] = command;
+      for(int i = 1; i<bufferSize; i++){
+        while(!(Serial.available()>0));
+        ret[i] = Serial.read();
+      }
+      return ret;
       }
   }
 }
+
+}
+
+//Client to server: RTX
+
+byte* sendCmd(char header, int payload){
+   byte packet[2] = {header, payload};
+   Serial.write(packet, 2);
+}
+
+void parseIncomingSerial(){ // METHOD UNFINISHED
+    char expectedTypes[4] = {'$', '#','*','!'};
+    byte* ret = awaitHeader(expectedTypes,4,2);
+  switch (ret[0]){
+    case '$':
+    if (playGame(ret[1])) {
+      sendCmd('=', 1);
+      flashPlayer(score[ret[1]], false);
+    }
+    else {
+      sendCmd('=', 0);
+    }
+
+    break;
+
+    case '#':
+    ledTest();
+    break;
+
+    case '*':
+      flashPlayer(ret[1], false);
+      
+    break;
+
+    case '!':
+    sendCmd('!',0);
+    break;
+    
+  }
+    
+}
+//Server to client: TX
+
+void waitForSlave(){
+  boolean slaveAlive = false;
+  while(!slaveAlive){
+    sendCmd('!',0);
+    delay(1000);
+  if(Serial.available()>0){
+    if(Serial.read()== '!') slaveAlive = true;
+  }
+
+  }
+ 
+}
+
+
+void requestTurn(int remotePlayerID){ 
+  sendCmd('$',remotePlayerID);
+}
+
+boolean waitForResult(){ // METHOD UNFINISHED
+  char expectedTypes[1] = {'='};
+  byte* ret = awaitHeader(expectedTypes,1,2);
+
+  return (ret[1]== 1);
 }
 
 boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
