@@ -1,21 +1,22 @@
 #include <Servo.h> // Required library for the servo
 
-boolean MASTER = true;
-
 int NORMAL = 0;
 int SLAVE = 1;
 
-boolean playerWon = false;
-boolean debugPrint = false;
 
 // IMPORTANT PARAMETER: This states what mode the arduino is in
 int MODE = NORMAL;
+boolean MASTER = true;
+
+boolean playerWon = false;
+boolean debugPrint = false;
 
 Servo myServo;
 // Sets up the number of players
 int const amountOfPlayers = 4; // *** Is this meant to also be 2 if we're getting a 4 player game working ***?
 int const amountOfLocalPlayers = 2;
 int score[amountOfPlayers];
+int difficulty = 1;
 
 // assign LEDs, buttons and the servo to their pins
 int ledPin[amountOfPlayers][3] = {{4,5,6},{11,12,13}};
@@ -26,6 +27,7 @@ int buzzer = 9;
 int servoPin = 10;
 int servoWin = 10;
 int servoLose = 180;
+int difficultyDial = A0;
 
 
 boolean gameOn[amountOfPlayers];
@@ -76,6 +78,17 @@ void setVariables(){
   }
 }
 
+int readDifficultyDial(){
+  int sensorValue = analogRead(difficultyDial);
+  return map(sensorValue, 0, 1023, 0, 10);
+}
+
+int updateDifficulty(){
+    difficulty = readDifficultyDial();
+    
+    if(MASTER) updateClientDifficulty(difficulty);
+}
+
 //run main program loop
 void loop() {
   // Runs the play game function for each of the players
@@ -85,6 +98,7 @@ void loop() {
     switch(MODE){
 
       case 0:
+      updateDifficulty();
       int e;
       for(e = 0; e < amountOfLocalPlayers; e++) {
           if(playGame(e)) flashPlayer(score[e], true);
@@ -95,12 +109,20 @@ void loop() {
         }
       }
 
+      int winner;
+
+      if((winner=getWinningPlayer())>=0){
+        playWinningAnimation(winner);
+        playerWon = true;
+      }
+
       break;
 
       case 1 :
       if(Serial.available()>0) parseIncomingSerial();
       break;
     }
+    
   }
 
   else{
@@ -109,18 +131,63 @@ void loop() {
 //Debugging purposes
 //debug();
 }
+int getWinningPlayer(){
+  for (int a = 0; a < amountOfPlayers; a ++) {
+    if(score[a]>=10) return a;
+  }
+  return -1;
+}
+
+void setPlayerLEDs(int playerID, int value){
+  for (int j = 0; j<3; j++){
+      digitalWrite(ledPin[playerID][j],value);
+    }
+}
+
+void setAllLEDs(int value){
+  for(int i = 0; i< amountOfPlayers; i++){
+    for (int j = 0; j<3; j++){
+      digitalWrite(ledPin[i][j],value);
+    }
+  }
+}
+
+void playWinningAnimation(int playerID){
+  boolean remotePlayer = (MASTER && (playerID+1)>amountOfLocalPlayers);
+  if(remotePlayer) sendCmd('&', playerID-amountOfLocalPlayers);
+  else sendCmd('&', -1);
+  for(int i =0; i<10; i++){
+    setAllLEDs(HIGH);
+    delay(100);
+    setAllLEDs(LOW);
+    delay(100);
+  }
+
+    int amountOfFlashes = 3;
+    if(!remotePlayer){
+    for(int i= 0; i< amountOfFlashes; i++){
+    setPlayerLEDs(playerID,HIGH);
+    delay(1000);
+    setPlayerLEDs(playerID,LOW);
+    delay(1000);
+    }
+    }
+    else delay (2000*amountOfFlashes);
+  
+}
 
 boolean playGame(int playerIndex){
   String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
   //Serial.println(msg); // Shows the player's score
 
   randNumber = random(3); // select a random number for the LEDs
-
-  delay(random(400,800));
+  int minWait = (int)(400.0 * ((double)(11.0-difficulty)/10.0));
+  int maxWait = minWait*2;
+  delay(random(minWait,maxWait));
   playerPressed[playerIndex] = false;
   gameOn[playerIndex] = true;
   digitalWrite(ledPin[playerIndex][randNumber], HIGH);
-  delay(random(400,800));
+  delay(random(minWait,maxWait));
   gameOn[playerIndex] = false;
   digitalWrite(ledPin[playerIndex][randNumber], LOW);
   if(playerPressed[playerIndex] &&!fouled[playerIndex]) {
@@ -128,13 +195,10 @@ boolean playGame(int playerIndex){
     return true;
   }
   else if (fouled[playerIndex]){
-    // Player loses 50 points if cheating
-    score[playerIndex]-= 50;
     fouled[playerIndex] = false;
     return false;
   }
   else if(!playerPressed[playerIndex]) {
-    score[playerIndex]-= 1;
     return false;
   }
   // Loses 10 points if idle
@@ -236,8 +300,8 @@ byte* sendCmd(char header, int payload){
 }
 
 void parseIncomingSerial(){ // METHOD UNFINISHED
-    char expectedTypes[4] = {'$', '#','*','!'};
-    byte* ret = awaitHeader(expectedTypes,4,2);
+    char expectedTypes[6] = {'$', '#','*','!', '^', '&'};
+    byte* ret = awaitHeader(expectedTypes,6,2);
   switch (ret[0]){
     case '$':
     if (playGame(ret[1])) {
@@ -262,11 +326,24 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
     case '!':
     sendCmd('!',0);
     break;
+
+    case '^':
+    difficulty = ret[1];
+    break;
+
+    case '&':
+    playWinningAnimation(ret[1]);
+    setVariables();
+    break;
     
   }
     
 }
 //Server to client: TX
+
+void updateClientDifficulty(int difficulty){
+  sendCmd('^', difficulty);
+}
 
 void waitForSlave(){
   boolean slaveAlive = false;
