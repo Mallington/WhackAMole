@@ -13,7 +13,7 @@ boolean debugPrint = false;
 
 Servo myServo;
 // Sets up the number of players
-int const amountOfPlayers = 4; // *** Is this meant to also be 2 if we're getting a 4 player game working ***?
+int const amountOfPlayers = 4;
 int const amountOfLocalPlayers = 2;
 int score[amountOfPlayers];
 int difficulty = 1;
@@ -39,8 +39,9 @@ boolean playerPressed[amountOfPlayers];
 int randNumber;
 boolean fouled[amountOfPlayers];
 
-//setup interrupt, button input and LED outputs
+
 void setup() {
+//setup interrupt, button input and LED outputs
   Serial.begin(9600); // Connects to the serial monitor for printing
   myServo.attach(servoPin);
   for (int r = 0; r < amountOfPlayers; r++) {
@@ -67,8 +68,8 @@ void setup() {
 }
 
 void setVariables(){
+// Sets up the variables for each of the players
   playerWon = false;
-
   for (int a = 0; a < amountOfPlayers; a ++) {
     // Loop to set up the arrays in a better format, if more players are added
     gameOn[a] = false;
@@ -79,24 +80,21 @@ void setVariables(){
 }
 
 int readDifficultyDial(){
+// Reads the potentiometer's resistance and maps it to a difficulty level
   int sensorValue = analogRead(difficultyDial);
   return map(sensorValue, 0, 1023, 0, 10);
 }
 
 int updateDifficulty(){
+// Changes the difficulty of the game depending on the potentiometer
     difficulty = readDifficultyDial();
-    
     if(MASTER) updateClientDifficulty(difficulty);
 }
 
-//run main program loop
 void loop() {
-  // Runs the play game function for each of the players
-
+// Main loop for the program. Runs play game for the local player, as well as handling the comms between the master and slave
   if(!playerWon){
-
     switch(MODE){
-
       case 0:
       updateDifficulty();
       int e;
@@ -108,43 +106,38 @@ void loop() {
           if(executeRemotePlayer(e++)) flashPlayer(score[e],false);
         }
       }
-
       int winner;
-
       if((winner=getWinningPlayer())>=0){
         playWinningAnimation(winner);
         playerWon = true;
       }
-
       break;
-
       case 1 :
       if(Serial.available()>0) parseIncomingSerial();
       break;
-    }
-    
+    }   
   }
-
   else{
     setVariables(); // Resets variables for new game
   }
-//Debugging purposes
-//debug();
-}
+
 int getWinningPlayer(){
+// Returns the player number of the winner
   for (int a = 0; a < amountOfPlayers; a ++) {
     if(score[a]>=10) return a;
   }
-  return -1;
+  return -1; // Captures if there is an error
 }
 
 void setPlayerLEDs(int playerID, int value){
+// Sets up all the LEDs for a specific player
   for (int j = 0; j<3; j++){
       digitalWrite(ledPin[playerID][j],value);
     }
 }
 
 void setAllLEDs(int value){
+// Sets up all the LEDs for all of the players
   for(int i = 0; i< amountOfPlayers; i++){
     for (int j = 0; j<3; j++){
       digitalWrite(ledPin[i][j],value);
@@ -153,6 +146,7 @@ void setAllLEDs(int value){
 }
 
 void playWinningAnimation(int playerID){
+// Lights up all of the LEDs to show game has ended
   boolean remotePlayer = (MASTER && (playerID+1)>amountOfLocalPlayers);
   if(remotePlayer) sendCmd('&', playerID-amountOfLocalPlayers);
   else sendCmd('&', -1);
@@ -162,27 +156,25 @@ void playWinningAnimation(int playerID){
     setAllLEDs(LOW);
     delay(100);
   }
-
-    int amountOfFlashes = 3;
-    if(!remotePlayer){
+  int amountOfFlashes = 3;
+  if(!remotePlayer){
     for(int i= 0; i< amountOfFlashes; i++){
-    setPlayerLEDs(playerID,HIGH);
-    delay(1000);
-    setPlayerLEDs(playerID,LOW);
-    delay(1000);
+      setPlayerLEDs(playerID,HIGH);
+      delay(1000);
+      setPlayerLEDs(playerID,LOW);
+      delay(1000);
+      }
     }
-    }
-    else delay (2000*amountOfFlashes);
-  
+  else delay (2000*amountOfFlashes);
 }
 
 boolean playGame(int playerIndex){
-  String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
+  // Play game function for a specific player. Returns true if point is won
+  //String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
   //Serial.println(msg); // Shows the player's score
-
   randNumber = random(3); // select a random number for the LEDs
   int minWait = (int)(400.0 * ((double)(11.0-difficulty)/10.0));
-  int maxWait = minWait*2;
+  int maxWait = minWait*2; // Varies the time the LED is on based on the difficulty
   delay(random(minWait,maxWait));
   playerPressed[playerIndex] = false;
   gameOn[playerIndex] = true;
@@ -195,23 +187,23 @@ boolean playGame(int playerIndex){
     return true;
   }
   else if (fouled[playerIndex]){
+// Checks to see if player is spamming the button/pressed it at the wrong time
     fouled[playerIndex] = false;
     return false;
   }
   else if(!playerPressed[playerIndex]) {
+// Returns false if the player didn't press the button
     return false;
   }
-  // Loses 10 points if idle
 }
 
 void flashPlayer(int score, boolean flashRemote){
-  myServo.write(servoWin);
-
+// Flashes the white LEDs, moves the servos and plays a noise on all of the boards
+  myServo.write(servoWin)
   if(flashRemote && MASTER) sendCmd('*', score); //sends flash request to client, with score as payload
-  
   for(int i = 0; i<2; i++){
     digitalWrite(whiteLED, HIGH);
-    tone(buzzer,score*100);
+    tone(buzzer,score*100); // Plays a tone based on the player's score
     delay(500);
     digitalWrite(whiteLED, LOW);
     noTone(buzzer);
@@ -220,6 +212,7 @@ void flashPlayer(int score, boolean flashRemote){
 }
 
 void ledTest(){
+// Lights up all of the LEDs in order to show all is working
    for(int i = 0; i< amountOfPlayers; i++){
     for (int j = 0; j<3; j++){
       delay(100);
@@ -231,6 +224,7 @@ void ledTest(){
 }
 
 void debug(){
+// 
   for (int p = 0; p < amountOfPlayers; p++) {
     if(digitalRead (playerButton[p]) == HIGH) printDebug(String(playerButton[p])+"| High: "+String(p));
     else printDebug(String(playerButton[p])+"| LOW: "+String(p));
