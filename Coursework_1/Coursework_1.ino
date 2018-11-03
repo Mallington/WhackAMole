@@ -170,8 +170,6 @@ void playWinningAnimation(int playerID){
 
 boolean playGame(int playerIndex){
   // Play game function for a specific player. Returns true if point is won
-  //String msg = "Player "+String(playerIndex + 1)+" Score: "+String(score[playerIndex]);
-  //Serial.println(msg); // Shows the player's score
   randNumber = random(3); // select a random number for the LEDs
   int minWait = (int)(400.0 * ((double)(11.0-difficulty)/10.0));
   int maxWait = minWait*2; // Varies the time the LED is on based on the difficulty
@@ -224,7 +222,7 @@ void ledTest(){
 }
 
 void debug(){
-// 
+// For debugging purposes, while developing
   for (int p = 0; p < amountOfPlayers; p++) {
     if(digitalRead (playerButton[p]) == HIGH) printDebug(String(playerButton[p])+"| High: "+String(p));
     else printDebug(String(playerButton[p])+"| LOW: "+String(p));
@@ -232,16 +230,17 @@ void debug(){
 }
 
 void printDebug(String in) {
+// For debugging purposes, to avoid serial issues
   if(debugPrint) printDebug(in);
 }
 
 
 void triggered() {
-  // Checking to see if the player is cheating
+  // Main point of entry when a button is pressed
   for (int p = 0; p < amountOfPlayers; p++) {
-    if(digitalRead (playerButton[p]) == HIGH){
+    if(digitalRead (playerButton[p]) == HIGH){ // Finds which button is pressed
       printDebug(String("Match: "+String(p)));
-      if(gameOn[p]) playerPressed[p] = true;
+      if(gameOn[p]) playerPressed[p] = true; // Checks if player mispressed
       else fouled[p] = true;
     }
   }
@@ -250,54 +249,71 @@ void triggered() {
 /* Please note Comms protocol as follows
 
 For Master to client playGame:
-Command (without qoutes): "a<Integer of player>"
+Command (without quotes): "$<Integer of player>"
 Note that Integer of player is relevant only to the clients indexes therefore player 2 (Index starting at 0: obvs) would be 0
-eg. for player 0: "a0"
+eg. for player 0: "$0"
 
-For client return score back to master after request: "b<Turn won integer>"
+For client return score back to master after request: "=<Turn won integer>"
 where 1 is sucessfull and 0 is unsucessful
-eg. For a sucessfull attempt: "b1", unsucessful: "b0"
+eg. For a sucessfull attempt: "=1", unsucessful: "=0"
 
+There are additional command functions for variable maintenance, to initiate animations on the clave board, check requests to see if board is alive etc. See below:
+
+Play LED test:
+#<null>
+
+Play Flash Player Animation
+*<playerID>
+
+Check if slave is alive
+!<null>
+Response:  !<null>
+
+Set difficulty level:
+^<difficultyInteger>
+
+Play winning animation
+&<winningPlayerID>
 
 */
 
 // General serial commands
 byte* awaitHeader(char* ID, int idAmount, int bufferSize){
-
+// Checking to see if the incoming serial command is of the correct format (e.g. an “=” for the result command)
   String clientCommand = "";
-  byte* ret = new byte[bufferSize];
+  byte* ret = new byte[bufferSize]; // Incoming bytes
   
   while (true) {
     while(Serial.available()>0) {
       char command = Serial.read();
       boolean cmdFound = false;
-      
-      for(int i =0; i< idAmount; i++) if(command == ID[i]) cmdFound = true;
-      if (cmdFound){ 
-      ret[0] = command;
-      for(int i = 1; i<bufferSize; i++){
-        while(!(Serial.available()>0));
-        ret[i] = Serial.read();
+      for(int i =0; i< idAmount; i++) if(command == ID[i]) cmdFound = true; // Checks to see if desired a header exists
+      if (cmdFound){ // If a header is found it enters
+        ret[0] = command; // header
+        for(int i = 1; i<bufferSize; i++){ // loops until desired buffer is filled
+          while(!(Serial.available()>0)); // Waits for next incoming byte, before filling buffer
+          ret[i] = Serial.read();
+          }
+        return ret;
       }
-      return ret;
-      }
+    }
   }
-}
-
 }
 
 //Client to server: RTX
 
 byte* sendCmd(char header, int payload){
-   byte packet[2] = {header, payload};
+// Sends the result of play game to the server
+   byte packet[2] = {header, payload}; 
    Serial.write(packet, 2);
 }
 
-void parseIncomingSerial(){ // METHOD UNFINISHED
-    char expectedTypes[6] = {'$', '#','*','!', '^', '&'};
-    byte* ret = awaitHeader(expectedTypes,6,2);
-  switch (ret[0]){
-    case '$':
+void parseIncomingSerial(){
+// Checks all incoming serial commands, then parses only the needed ones
+    char expectedTypes[6] = {'$', '#','*','!', '^', '&'}; // Expected header types
+    byte* ret = awaitHeader(expectedTypes,6,2); // Waits for one of the headers
+  switch (ret[0]){ //Based on header, the slave executes accordingly
+    case '$': //Play game command
     if (playGame(ret[1])) {
       sendCmd('=', 1);
       flashPlayer(score[ret[1]], false);
@@ -305,74 +321,70 @@ void parseIncomingSerial(){ // METHOD UNFINISHED
     else {
       sendCmd('=', 0);
     }
-
     break;
 
-    case '#':
+    case '#': // Start up LED test command
     ledTest();
     break;
 
-    case '*':
+    case '*': // Flash player command, if player is successful
       flashPlayer(ret[1], false);
-      
     break;
 
-    case '!':
+    case '!': // Is dobby alive?: Checks to see if slave is alive
+// Note: If master does not receive, Dobby has his socks
     sendCmd('!',0);
     break;
 
-    case '^':
+    case '^': //Set difficulty command
     difficulty = ret[1];
     break;
 
-    case '&':
+    case '&': // Play winning animation command
     playWinningAnimation(ret[1]);
     setVariables();
     break;
-    
   }
-    
 }
 //Server to client: TX
 
 void updateClientDifficulty(int difficulty){
+// Sends the change in difficulty to the client
   sendCmd('^', difficulty);
 }
 
 void waitForSlave(){
+// Waits for the client’s response before continuing
   boolean slaveAlive = false;
   while(!slaveAlive){
     sendCmd('!',0);
     delay(1000);
-  if(Serial.available()>0){
-    if(Serial.read()== '!') slaveAlive = true;
+    if(Serial.available()>0){
+      if(Serial.read()== '!') slaveAlive = true;
+    }
   }
-
-  }
- 
 }
 
 
 void requestTurn(int remotePlayerID){ 
+// Sends the command to trigger the turn on the client’s side
   sendCmd('$',remotePlayerID);
 }
 
-boolean waitForResult(){ // METHOD UNFINISHED
+boolean waitForResult(){ 
+// Waits for the “=” sign to check to see if the client’s player succeeded or not
   char expectedTypes[1] = {'='};
   byte* ret = awaitHeader(expectedTypes,1,2);
-
   return (ret[1]== 1);
 }
 
-boolean executeRemotePlayer(int localID){ // Finished when UNFINISHED methods are completed
+boolean executeRemotePlayer(int localID){
+// Triggers the request for the client’s game, then increases their score if they were successful
   int remotePlayerID = localID - amountOfLocalPlayers;
-
-  requestTurn(remotePlayerID);
-    
+  requestTurn(remotePlayerID);  
   if(waitForResult()) { // Returns boolean: True - means player hit mole, False - means player missed
     score[localID] ++;
     return true;
   }
   else return false;
-
 }
